@@ -11,8 +11,9 @@ import {
   Pagination,
   PaginationVariant,
   Stack,
+  Switch,
 } from '@patternfly/react-core';
-import { CodeIcon, JavaIcon, PythonIcon } from '@patternfly/react-icons';
+import { BellIcon, CodeIcon, JavaIcon, PythonIcon } from '@patternfly/react-icons';
 import { SkeletonTable } from '@patternfly/react-component-groups';
 import {
   Table,
@@ -44,6 +45,9 @@ import {
   getRepositoryPathSlug,
 } from '../helpers';
 import ConnectRepositoryModal from './components/ConnectRepositoryModal';
+import NotificationConfigModal, {
+  type NotificationPreferences,
+} from './components/NotificationConfigModal';
 import { capitalize } from 'lodash';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -65,6 +69,24 @@ const RepositoriesTable = () => {
   const [page, setPage] = useState(1);
   const storedPerPage = Number(localStorage.getItem(lightwellReposPerPageKey)) || 20;
   const [perPage, setPerPage] = useState(storedPerPage);
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>({
+    enabled: false,
+    securityLevels: ['validated', 'remediated'],
+  });
+  const [notifiedRepoUUIDs, setNotifiedRepoUUIDs] = useState<Set<string>>(new Set());
+
+  const toggleRepoNotification = (uuid: string) => {
+    setNotifiedRepoUUIDs((prev) => {
+      const next = new Set(prev);
+      if (next.has(uuid)) {
+        next.delete(uuid);
+      } else {
+        next.add(uuid);
+      }
+      return next;
+    });
+  };
+
   const filters: FilterData = {
     feature_name: LIGHTWELL_FEATURE_NAME,
   };
@@ -117,6 +139,13 @@ const RepositoriesTable = () => {
         tooltip: 'Total package versions available in this repository.',
       },
     },
+    {
+      title: 'Notify',
+      width: 10,
+      info: {
+        tooltip: 'Toggle email notifications for new packages in this repository.',
+      },
+    },
   ];
 
   const onSetPage = (_, newPage: number) => setPage(newPage);
@@ -147,6 +176,21 @@ const RepositoriesTable = () => {
         showOpenSourceBadge={false}
       />
       <PageSection hasBodyWrapper={false} className={`${spacing.pt_0} ${spacing.pb_2xl}`}>
+        <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} className={spacing.mbMd}>
+          <FlexItem>
+            <NotificationConfigModal
+              preferences={notificationPrefs}
+              onSave={setNotificationPrefs}
+            >
+              <Button
+                variant='plain'
+                aria-label='Notification preferences'
+                ouiaId='lightwell-notification-config-button'
+                icon={<BellIcon />}
+              />
+            </NotificationConfigModal>
+          </FlexItem>
+        </Flex>
         <Grid data-ouia-component-id='lightwell-repositories-page'>
           <Hide hide={countIsZero || count < 10}>
             <Flex
@@ -265,6 +309,16 @@ const RepositoriesTable = () => {
                             </Td>
                             <Td>{package_count.toLocaleString() ?? '0'}</Td>
                             <Td>{version_count?.toLocaleString() ?? '0'}</Td>
+                            <Td>
+                              <Switch
+                                id={`notify-${uuid}`}
+                                aria-label={`Toggle notifications for ${formatRepositoryName(content_type, security_level, name)}`}
+                                isChecked={notifiedRepoUUIDs.has(uuid)}
+                                onChange={() => toggleRepoNotification(uuid)}
+                                isDisabled={!notificationPrefs.enabled}
+                                ouiaId={`notify-toggle-${uuid}`}
+                              />
+                            </Td>
                           </Tr>
                         );
                       })}
