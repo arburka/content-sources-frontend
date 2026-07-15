@@ -71,7 +71,8 @@ const RepositoriesTable = () => {
   const [perPage, setPerPage] = useState(storedPerPage);
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>({
     enabled: false,
-    securityLevels: ['validated', 'remediated'],
+    severityThreshold: 'high',
+    audience: 'all',
   });
   const [notifiedRepoUUIDs, setNotifiedRepoUUIDs] = useState<Set<string>>(new Set());
 
@@ -139,13 +140,17 @@ const RepositoriesTable = () => {
         tooltip: 'Total package versions available in this repository.',
       },
     },
-    {
-      title: 'Notify',
-      width: 10,
-      info: {
-        tooltip: 'Toggle email notifications for new packages in this repository.',
-      },
-    },
+    ...(notificationPrefs.enabled
+      ? [
+          {
+            title: 'Notify',
+            width: 10,
+            info: {
+              tooltip: 'Toggle email notifications for new packages in this repository.',
+            },
+          },
+        ]
+      : []),
   ];
 
   const onSetPage = (_, newPage: number) => setPage(newPage);
@@ -174,23 +179,24 @@ const RepositoriesTable = () => {
         ouiaId='lightwell-header'
         paragraph='Browse Lightwell repositories by ecosystem and security level.'
         showOpenSourceBadge={false}
+        actionContent={
+          <NotificationConfigModal
+            preferences={notificationPrefs}
+            onSave={setNotificationPrefs}
+          >
+            <Button
+              size='sm'
+              variant='secondary'
+              aria-label='Notification preferences'
+              ouiaId='lightwell-notification-config-button'
+              icon={<BellIcon />}
+            >
+              Notifications
+            </Button>
+          </NotificationConfigModal>
+        }
       />
       <PageSection hasBodyWrapper={false} className={`${spacing.pt_0} ${spacing.pb_2xl}`}>
-        <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} className={spacing.mbMd}>
-          <FlexItem>
-            <NotificationConfigModal
-              preferences={notificationPrefs}
-              onSave={setNotificationPrefs}
-            >
-              <Button
-                variant='plain'
-                aria-label='Notification preferences'
-                ouiaId='lightwell-notification-config-button'
-                icon={<BellIcon />}
-              />
-            </NotificationConfigModal>
-          </FlexItem>
-        </Flex>
         <Grid data-ouia-component-id='lightwell-repositories-page'>
           <Hide hide={countIsZero || count < 10}>
             <Flex
@@ -309,16 +315,17 @@ const RepositoriesTable = () => {
                             </Td>
                             <Td>{package_count.toLocaleString() ?? '0'}</Td>
                             <Td>{version_count?.toLocaleString() ?? '0'}</Td>
-                            <Td>
-                              <Switch
-                                id={`notify-${uuid}`}
-                                aria-label={`Toggle notifications for ${formatRepositoryName(content_type, security_level, name)}`}
-                                isChecked={notifiedRepoUUIDs.has(uuid)}
-                                onChange={() => toggleRepoNotification(uuid)}
-                                isDisabled={!notificationPrefs.enabled}
-                                ouiaId={`notify-toggle-${uuid}`}
-                              />
-                            </Td>
+                            {notificationPrefs.enabled && (
+                              <Td>
+                                <Switch
+                                  id={`notify-${uuid}`}
+                                  aria-label={`Toggle notifications for ${formatRepositoryName(content_type, security_level, name)}`}
+                                  isChecked={notifiedRepoUUIDs.has(uuid)}
+                                  onChange={() => toggleRepoNotification(uuid)}
+                                  ouiaId={`notify-toggle-${uuid}`}
+                                />
+                              </Td>
+                            )}
                           </Tr>
                         );
                       })}

@@ -1,9 +1,10 @@
 import {
   Button,
-  Checkbox,
   Form,
   FormGroup,
   FormHelperText,
+  FormSelect,
+  FormSelectOption,
   HelperText,
   HelperTextItem,
   Modal,
@@ -11,15 +12,18 @@ import {
   ModalFooter,
   ModalHeader,
   ModalVariant,
+  Radio,
   Switch,
 } from '@patternfly/react-core';
 import { cloneElement, ReactElement, useState } from 'react';
 
-type SecurityLevel = 'validated' | 'remediated';
+type Severity = 'critical' | 'high' | 'medium' | 'low';
+type Audience = 'all' | 'admins' | 'me';
 
 export interface NotificationPreferences {
   enabled: boolean;
-  securityLevels: SecurityLevel[];
+  severityThreshold: Severity;
+  audience: Audience;
 }
 
 type NotificationConfigModalProps = {
@@ -27,6 +31,19 @@ type NotificationConfigModalProps = {
   onSave: (preferences: NotificationPreferences) => void;
   children: ReactElement<{ onClick?: (event: React.MouseEvent) => void }>;
 };
+
+const severityOptions: { value: Severity; label: string }[] = [
+  { value: 'critical', label: 'Critical only' },
+  { value: 'high', label: 'High and above' },
+  { value: 'medium', label: 'Medium and above' },
+  { value: 'low', label: 'All severities' },
+];
+
+const audienceOptions: { value: Audience; label: string }[] = [
+  { value: 'all', label: 'All organization members' },
+  { value: 'admins', label: 'Organization admins only' },
+  { value: 'me', label: 'Only me' },
+];
 
 const NotificationConfigModal = ({
   preferences: savedPreferences,
@@ -53,20 +70,9 @@ const NotificationConfigModal = ({
     },
   });
 
-  const toggleSecurityLevel = (level: SecurityLevel, checked: boolean) => {
-    setDraft((prev) => ({
-      ...prev,
-      securityLevels: checked
-        ? [...prev.securityLevels, level]
-        : prev.securityLevels.filter((l) => l !== level),
-    }));
-  };
-
-  const isFormValid = !draft.enabled || draft.securityLevels.length > 0;
-
   const handleSave = () => {
     onSave(draft);
-    setIsSaved(true);
+    closeModal();
   };
 
   return (
@@ -83,7 +89,7 @@ const NotificationConfigModal = ({
         <ModalHeader
           title='Notification preferences'
           labelId='lightwell-notification-config-modal-title'
-          description='Configure how you get notified when new packages are available. Toggle notifications for individual repositories in the table below.'
+          description='Get notified when vulnerability fixes are available for packages in your repositories.'
         />
         <ModalBody>
           <Form>
@@ -92,8 +98,8 @@ const NotificationConfigModal = ({
                 id='notification-toggle'
                 label={
                   draft.enabled
-                    ? 'Send me an email immediately when a new package is available'
-                    : 'Notifications are disabled'
+                    ? 'Notify me when fixes are available'
+                    : 'Notifications are off'
                 }
                 isChecked={draft.enabled}
                 onChange={(_event, checked) => setDraft((prev) => ({ ...prev, enabled: checked }))}
@@ -102,32 +108,47 @@ const NotificationConfigModal = ({
             </FormGroup>
 
             {draft.enabled && (
-              <FormGroup
-                fieldId='security-levels'
-                label='Security levels'
-                isRequired
-                role='group'
-              >
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem>
-                      Only notify me for packages at these security levels.
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-                <Checkbox
-                  id='security-level-validated'
-                  label='Validated — rebuilt from source and verified end-to-end'
-                  isChecked={draft.securityLevels.includes('validated')}
-                  onChange={(_event, checked) => toggleSecurityLevel('validated', checked)}
-                />
-                <Checkbox
-                  id='security-level-remediated'
-                  label='Remediated — includes Red Hat backported security fixes'
-                  isChecked={draft.securityLevels.includes('remediated')}
-                  onChange={(_event, checked) => toggleSecurityLevel('remediated', checked)}
-                />
-              </FormGroup>
+              <>
+                <FormGroup fieldId='notification-audience' label='Send notifications to'>
+                  <FormSelect
+                    id='notification-audience'
+                    value={draft.audience}
+                    onChange={(_event, value) =>
+                      setDraft((prev) => ({ ...prev, audience: value as Audience }))
+                    }
+                    ouiaId='notification-audience-select'
+                  >
+                    {audienceOptions.map(({ value, label }) => (
+                      <FormSelectOption key={value} value={value} label={label} />
+                    ))}
+                  </FormSelect>
+                </FormGroup>
+
+                <FormGroup
+                  fieldId='severity-threshold'
+                  label='Severity threshold'
+                  isRequired
+                  role='radiogroup'
+                >
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Get notified immediately when fixes are available for vulnerabilities at or above this severity.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                  {severityOptions.map(({ value, label }) => (
+                    <Radio
+                      key={value}
+                      id={`severity-${value}`}
+                      name='severity-threshold'
+                      label={label}
+                      isChecked={draft.severityThreshold === value}
+                      onChange={() => setDraft((prev) => ({ ...prev, severityThreshold: value }))}
+                    />
+                  ))}
+                </FormGroup>
+              </>
             )}
 
             {isSaved && (
@@ -145,7 +166,6 @@ const NotificationConfigModal = ({
           <Button
             key='save'
             variant='primary'
-            isDisabled={!isFormValid}
             onClick={handleSave}
             ouiaId='notification-save-button'
           >
