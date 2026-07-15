@@ -73,6 +73,7 @@ const RepositoriesTable = () => {
     enabled: false,
     severityThreshold: 'high',
     audience: 'all',
+    notifyNewPackages: true,
   });
   const [notifiedRepoUUIDs, setNotifiedRepoUUIDs] = useState<Set<string>>(new Set());
 

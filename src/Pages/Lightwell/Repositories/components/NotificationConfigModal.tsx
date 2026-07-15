@@ -1,5 +1,6 @@
 import {
   Button,
+  Content,
   Form,
   FormGroup,
   FormHelperText,
@@ -14,6 +15,11 @@ import {
   ModalVariant,
   Radio,
   Switch,
+  Tab,
+  TabContent,
+  TabContentBody,
+  Tabs,
+  TabTitleText,
 } from '@patternfly/react-core';
 import { cloneElement, ReactElement, useState } from 'react';
 
@@ -24,6 +30,7 @@ export interface NotificationPreferences {
   enabled: boolean;
   severityThreshold: Severity;
   audience: Audience;
+  notifyNewPackages: boolean;
 }
 
 type NotificationConfigModalProps = {
@@ -52,11 +59,11 @@ const NotificationConfigModal = ({
 }: NotificationConfigModalProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState<NotificationPreferences>(savedPreferences);
-  const [isSaved, setIsSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<string | number>('email');
 
   const openModal = () => {
     setDraft(savedPreferences);
-    setIsSaved(false);
+    setActiveTab('email');
     setIsOpen(true);
   };
   const closeModal = () => setIsOpen(false);
@@ -92,75 +99,112 @@ const NotificationConfigModal = ({
           description='Get notified when vulnerability fixes are available for packages in your repositories.'
         />
         <ModalBody>
-          <Form>
-            <FormGroup fieldId='notification-toggle' label='Email notifications'>
-              <Switch
-                id='notification-toggle'
-                label={
-                  draft.enabled
-                    ? 'Notify me when fixes are available'
-                    : 'Notifications are off'
-                }
-                isChecked={draft.enabled}
-                onChange={(_event, checked) => setDraft((prev) => ({ ...prev, enabled: checked }))}
-                ouiaId='notification-toggle'
-              />
-            </FormGroup>
+          <Tabs
+            activeKey={activeTab}
+            onSelect={(_event, tabIndex) => setActiveTab(tabIndex)}
+            aria-label='Notification channel tabs'
+          >
+            <Tab eventKey='email' title={<TabTitleText>Email</TabTitleText>}>
+              <TabContent id='email-tab'>
+                <TabContentBody hasPadding>
+                  <Form>
+                    <FormGroup fieldId='notification-toggle' label='Email notifications'>
+                      <Switch
+                        id='notification-toggle'
+                        label={
+                          draft.enabled
+                            ? 'Notify me when fixes are available'
+                            : 'Notifications are off'
+                        }
+                        isChecked={draft.enabled}
+                        onChange={(_event, checked) =>
+                          setDraft((prev) => ({ ...prev, enabled: checked }))
+                        }
+                        ouiaId='notification-toggle'
+                      />
+                    </FormGroup>
 
-            {draft.enabled && (
-              <>
-                <FormGroup fieldId='notification-audience' label='Send notifications to'>
-                  <FormSelect
-                    id='notification-audience'
-                    value={draft.audience}
-                    onChange={(_event, value) =>
-                      setDraft((prev) => ({ ...prev, audience: value as Audience }))
-                    }
-                    ouiaId='notification-audience-select'
-                  >
-                    {audienceOptions.map(({ value, label }) => (
-                      <FormSelectOption key={value} value={value} label={label} />
-                    ))}
-                  </FormSelect>
-                </FormGroup>
+                    {draft.enabled && (
+                      <>
+                        <FormGroup fieldId='notification-audience' label='Send notifications to'>
+                          <FormSelect
+                            id='notification-audience'
+                            value={draft.audience}
+                            onChange={(_event, value) =>
+                              setDraft((prev) => ({ ...prev, audience: value as Audience }))
+                            }
+                            ouiaId='notification-audience-select'
+                          >
+                            {audienceOptions.map(({ value, label }) => (
+                              <FormSelectOption key={value} value={value} label={label} />
+                            ))}
+                          </FormSelect>
+                        </FormGroup>
 
-                <FormGroup
-                  fieldId='severity-threshold'
-                  label='Severity threshold'
-                  isRequired
-                  role='radiogroup'
-                >
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        Get notified immediately when fixes are available for vulnerabilities at or above this severity.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                  {severityOptions.map(({ value, label }) => (
-                    <Radio
-                      key={value}
-                      id={`severity-${value}`}
-                      name='severity-threshold'
-                      label={label}
-                      isChecked={draft.severityThreshold === value}
-                      onChange={() => setDraft((prev) => ({ ...prev, severityThreshold: value }))}
-                    />
-                  ))}
-                </FormGroup>
-              </>
-            )}
+                        <FormGroup fieldId='notify-new-packages' label='New packages'>
+                          <Switch
+                            id='notify-new-packages'
+                            label='Notify me when new packages are added to selected repositories'
+                            isChecked={draft.notifyNewPackages}
+                            onChange={(_event, checked) =>
+                              setDraft((prev) => ({ ...prev, notifyNewPackages: checked }))
+                            }
+                            ouiaId='notify-new-packages-toggle'
+                          />
+                        </FormGroup>
 
-            {isSaved && (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem variant='success'>
-                    Notification preferences saved.
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            )}
-          </Form>
+                        <FormGroup
+                          fieldId='severity-threshold'
+                          label='Severity threshold'
+                          isRequired
+                          role='radiogroup'
+                        >
+                          <FormHelperText>
+                            <HelperText>
+                              <HelperTextItem>
+                                Get notified immediately when fixes are available for
+                                vulnerabilities at or above this severity.
+                              </HelperTextItem>
+                            </HelperText>
+                          </FormHelperText>
+                          {severityOptions.map(({ value, label }) => (
+                            <Radio
+                              key={value}
+                              id={`severity-${value}`}
+                              name='severity-threshold'
+                              label={label}
+                              isChecked={draft.severityThreshold === value}
+                              onChange={() =>
+                                setDraft((prev) => ({ ...prev, severityThreshold: value }))
+                              }
+                            />
+                          ))}
+                        </FormGroup>
+                      </>
+                    )}
+                  </Form>
+                </TabContentBody>
+              </TabContent>
+            </Tab>
+            <Tab eventKey='slack' title={<TabTitleText>Slack</TabTitleText>}>
+              <TabContent id='slack-tab'>
+                <TabContentBody hasPadding>
+                  <Content component='p'>
+                    Connect a Slack workspace to receive notifications in your team's channels. Coming soon.
+                  </Content>
+                </TabContentBody>
+              </TabContent>
+            </Tab>
+            <Tab eventKey='digest' title={<TabTitleText>Weekly digest</TabTitleText>}>
+              <TabContent id='digest-tab'>
+                <TabContentBody hasPadding>
+                  <Content component='p'>
+                    Receive a weekly summary of all activity across your Lightwell repositories. Coming soon.
+                  </Content>
+                </TabContentBody>
+              </TabContent>
+            </Tab>
+          </Tabs>
         </ModalBody>
         <ModalFooter>
           <Button
