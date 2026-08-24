@@ -4,6 +4,8 @@ import {
   ClipboardCopyVariant,
   Content,
   Flex,
+  FlexItem,
+  Label,
   Stack,
   StackItem,
   Tab,
@@ -11,7 +13,9 @@ import {
   Tabs,
   TabTitleText,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
+import { CheckCircleIcon } from '@patternfly/react-icons';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { createRef, useMemo, useState } from 'react';
 
@@ -120,6 +124,43 @@ const PackageOverviewTab = ({
           )}
         </Content>
       </Stack>
+      {hasRelease ? (
+        <Stack hasGutter>
+          <Title headingLevel='h2' size='lg'>
+            Secured by Red Hat
+          </Title>
+          <Flex gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Tooltip content='SLSA (Supply-chain Levels for Software Artifacts) Level 3 means the build was fully automated on a hardened, isolated platform. A signed provenance attestation documents the entire build process and is cryptographically verifiable.'>
+                <Label color='blue' icon={<CheckCircleIcon />}>
+                  SLSA Level 3
+                </Label>
+              </Tooltip>
+            </FlexItem>
+            <FlexItem>
+              <Tooltip content='This artifact is cryptographically signed by Red Hat using Sigstore/cosign with HSM-backed keys. You can run cosign verify to confirm it came from Red Hat&apos;s build pipeline and has not been tampered with.'>
+                <Label color='blue' icon={<CheckCircleIcon />}>
+                  Sigstore/cosign signed
+                </Label>
+              </Tooltip>
+            </FlexItem>
+            <FlexItem>
+              <Tooltip content='A CycloneDX Software Bill of Materials is delivered automatically alongside every artifact — a machine-readable inventory of all dependencies, versions, and licenses. Supports DORA, NIS2, EU CRA, and FDA SBOM compliance requirements.'>
+                <Label color='blue' icon={<CheckCircleIcon />}>
+                  CycloneDX SBOM
+                </Label>
+              </Tooltip>
+            </FlexItem>
+          </Flex>
+          <Content>
+            <p>
+              Every artifact in the Lightwell Validated catalog carries SLSA Level 3 build
+              provenance attestation — built on a hardened, tamper-resistant platform and
+              cryptographically signed by Red Hat.
+            </p>
+          </Content>
+        </Stack>
+      ) : null}
       <Stack hasGutter>
         <Title headingLevel='h2' size='lg'>
           How to use

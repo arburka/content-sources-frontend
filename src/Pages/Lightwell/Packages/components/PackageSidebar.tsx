@@ -123,8 +123,8 @@ const PackageSidebar = ({
               <DescriptionListGroup>
                 <DescriptionListTerm>Build provenance</DescriptionListTerm>
                 <DescriptionListDescription>
-                  <Tooltip content='Rebuilt and signed by Red Hat using Sigstore/cosign as part of the Lightwell build pipeline.'>
-                    <Label color='green' isCompact>
+                  <Tooltip content='SLSA Level 3 build provenance attestation, Sigstore/cosign signed with HSM-backed keys, and a CycloneDX SBOM — all delivered automatically as part of the Lightwell Validated catalog.'>
+                    <Label color='blue' isCompact>
                       SLSA Level 3
                     </Label>
                   </Tooltip>
